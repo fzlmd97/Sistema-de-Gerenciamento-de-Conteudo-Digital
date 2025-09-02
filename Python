@@ -1,0 +1,157 @@
+import tkinter as tk
+from tkinter import ttk, messagebox
+from abc import ABC, abstractmethod
+
+# === Classes OOP ===
+
+class ConteudoDigital(ABC):
+    def __init__(self, titulo, ano):
+        self.titulo = titulo
+        self.ano = ano
+
+    @abstractmethod
+    def exibir_info(self):
+        pass
+
+class Filme(ConteudoDigital):
+    def __init__(self, titulo, ano, diretor):
+        super().__init__(titulo, ano)
+        self.diretor = diretor
+
+    def exibir_info(self):
+        return f"🎬 Filme: {self.titulo} ({self.ano}) - Diretor: {self.diretor}"
+
+class Livro(ConteudoDigital):
+    def __init__(self, titulo, ano, autor):
+        super().__init__(titulo, ano)
+        self.autor = autor
+
+    def exibir_info(self):
+        return f"📚 Livro: {self.titulo} ({self.ano}) - Autor: {self.autor}"
+
+class Musica(ConteudoDigital):
+    def __init__(self, titulo, ano, artista):
+        super().__init__(titulo, ano)
+        self.artista = artista
+
+    def exibir_info(self):
+        return f"🎵 Música: {self.titulo} ({self.ano}) - Artista: {self.artista}"
+
+class GerenciadorConteudo:
+    def __init__(self):
+        self.conteudos = []
+
+    def adicionar_conteudo(self, conteudo):
+        self.conteudos.append(conteudo)
+
+    def remover_conteudo(self, index):
+        if 0 <= index < len(self.conteudos):
+            del self.conteudos[index]
+
+    def pesquisar_conteudos(self, termo):
+        return [c for c in self.conteudos if termo.lower() in c.titulo.lower()]
+
+    def listar_conteudos(self):
+        return self.conteudos
+
+# === Interface com Tkinter ===
+
+class App(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("Gerenciador de Conteúdo Digital")
+        self.geometry("600x400")
+        self.gerenciador = GerenciadorConteudo()
+
+        self.create_widgets()
+
+    def create_widgets(self):
+        # Aba de cadastro
+        aba = ttk.Notebook(self)
+        self.frame_cadastro = ttk.Frame(aba)
+        self.frame_lista = ttk.Frame(aba)
+        aba.add(self.frame_cadastro, text="Cadastrar Conteúdo")
+        aba.add(self.frame_lista, text="Listar/Pesquisar")
+        aba.pack(expand=True, fill="both")
+
+        # Frame de cadastro
+        self.tipo_var = tk.StringVar()
+        ttk.Label(self.frame_cadastro, text="Tipo:").pack()
+        tipo_combo = ttk.Combobox(self.frame_cadastro, textvariable=self.tipo_var, values=["Filme", "Livro", "Música"])
+        tipo_combo.pack()
+
+        self.titulo_var = tk.StringVar()
+        self.ano_var = tk.StringVar()
+        self.extra_var = tk.StringVar()
+
+        ttk.Label(self.frame_cadastro, text="Título:").pack()
+        ttk.Entry(self.frame_cadastro, textvariable=self.titulo_var).pack()
+
+        ttk.Label(self.frame_cadastro, text="Ano:").pack()
+        ttk.Entry(self.frame_cadastro, textvariable=self.ano_var).pack()
+
+        self.label_extra = ttk.Label(self.frame_cadastro, text="Diretor/Autor/Artista:")
+        self.label_extra.pack()
+        ttk.Entry(self.frame_cadastro, textvariable=self.extra_var).pack()
+
+        ttk.Button(self.frame_cadastro, text="Cadastrar", command=self.cadastrar_conteudo).pack(pady=10)
+
+        # Frame de listagem
+        self.lista_box = tk.Listbox(self.frame_lista)
+        self.lista_box.pack(expand=True, fill="both")
+
+        self.pesquisa_var = tk.StringVar()
+        ttk.Entry(self.frame_lista, textvariable=self.pesquisa_var).pack(pady=5)
+        ttk.Button(self.frame_lista, text="Pesquisar", command=self.pesquisar).pack()
+        ttk.Button(self.frame_lista, text="Remover Selecionado", command=self.remover).pack(pady=5)
+        ttk.Button(self.frame_lista, text="Listar Todos", command=self.listar).pack()
+
+    def cadastrar_conteudo(self):
+        tipo = self.tipo_var.get()
+        titulo = self.titulo_var.get()
+        ano = self.ano_var.get()
+        extra = self.extra_var.get()
+
+        if not titulo or not ano or not extra:
+            messagebox.showerror("Erro", "Todos os campos devem ser preenchidos.")
+            return
+
+        if tipo == "Filme":
+            conteudo = Filme(titulo, ano, extra)
+        elif tipo == "Livro":
+            conteudo = Livro(titulo, ano, extra)
+        elif tipo == "Música":
+            conteudo = Musica(titulo, ano, extra)
+        else:
+            messagebox.showerror("Erro", "Tipo inválido.")
+            return
+
+        self.gerenciador.adicionar_conteudo(conteudo)
+        messagebox.showinfo("Sucesso", "Conteúdo adicionado com sucesso.")
+        self.titulo_var.set("")
+        self.ano_var.set("")
+        self.extra_var.set("")
+
+    def listar(self):
+        self.lista_box.delete(0, tk.END)
+        for item in self.gerenciador.listar_conteudos():
+            self.lista_box.insert(tk.END, item.exibir_info())
+
+    def pesquisar(self):
+        termo = self.pesquisa_var.get()
+        resultados = self.gerenciador.pesquisar_conteudos(termo)
+        self.lista_box.delete(0, tk.END)
+        for item in resultados:
+            self.lista_box.insert(tk.END, item.exibir_info())
+
+    def remover(self):
+        index = self.lista_box.curselection()
+        if index:
+            self.gerenciador.remover_conteudo(index[0])
+            self.listar()
+        else:
+            messagebox.showwarning("Aviso", "Selecione um item para remover.")
+
+if __name__ == "__main__":
+    app = App()
+    app.mainloop()
